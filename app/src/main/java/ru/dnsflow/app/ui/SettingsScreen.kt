@@ -21,6 +21,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import kotlinx.coroutines.launch
 import ru.dnsflow.app.App
 import ru.dnsflow.app.MainActivity
 import ru.dnsflow.app.export.Export
+import ru.dnsflow.app.update.Updater
 import kotlin.system.exitProcess
 
 @Composable
@@ -92,6 +94,24 @@ fun SettingsScreen(onBack: () -> Unit) {
             OutlinedButton(onClick = { app.lookup.recheckAll() }, modifier = Modifier.fillMaxWidth()) {
                 Text("Перепроверить все товары")
             }
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle("Обновления")
+            val update by Updater.state.collectAsState()
+            Text(
+                "Версия ${Updater.currentVersion(context)}" + when (update) {
+                    Updater.State.Checking -> " · проверка…"
+                    Updater.State.UpToDate -> " · последняя"
+                    is Updater.State.Failed -> " · " + (update as Updater.State.Failed).message
+                    else -> ""
+                },
+                fontSize = 14.sp,
+            )
+            OutlinedButton(
+                onClick = { scope.launch { Updater.check(context, force = true) } },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Проверить обновления") }
+            UpdateCard()
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionTitle("Данные")

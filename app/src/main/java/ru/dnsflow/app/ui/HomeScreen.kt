@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -33,12 +34,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import ru.dnsflow.app.App
 import ru.dnsflow.app.data.Repo
+import ru.dnsflow.app.update.Updater
 
 @Composable
 fun HomeScreen(
@@ -62,6 +65,8 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("Приёмка товара", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+
+        UpdateCard()
 
         // Work in progress comes first: one tap to carry on.
         open?.let { s ->
@@ -155,5 +160,44 @@ private fun BigButton(
         OutlinedButton(onClick, mod) { content() }
     } else {
         Button(onClick, mod, colors = color?.let { ButtonDefaults.buttonColors(containerColor = it) } ?: ButtonDefaults.buttonColors()) { content() }
+    }
+}
+
+/** A newer version on GitHub: shown on the home screen only, so scanning is never interrupted. */
+@Composable
+fun UpdateCard() {
+    val context = LocalContext.current
+    val state by Updater.state.collectAsState()
+    LaunchedEffect(Unit) { Updater.check(context) }
+    val release = when (val st = state) {
+        is Updater.State.Available -> st.release
+        is Updater.State.Downloading -> st.release
+        is Updater.State.NeedsPermission -> st.release
+        is Updater.State.Failed -> st.release
+        else -> null
+    } ?: return
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Доступна версия ${release.version}", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            if (release.notes.isNotBlank()) Text(release.notes, fontSize = 14.sp, color = Color.DarkGray, maxLines = 5)
+            when (val st = state) {
+                is Updater.State.Downloading -> Text("Скачивание… ${st.percent}%", fontSize = 15.sp)
+                is Updater.State.NeedsPermission ->
+                    Text("Разрешите установку из этого приложения и нажмите «Установить»", fontSize = 14.sp, color = ProblemRed)
+                is Updater.State.Failed -> Text(st.message, fontSize = 14.sp, color = ProblemRed)
+                else -> {}
+            }
+            Button(
+                onClick = { App.instance.scope.launch { Updater.install(context.applicationContext, release) } },
+                enabled = state !is Updater.State.Downloading,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+            ) {
+                Text(if (state is Updater.State.NeedsPermission) "Установить" else "Обновить", fontSize = 16.sp)
+            }
+        }
     }
 }
