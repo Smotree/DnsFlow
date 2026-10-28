@@ -1,0 +1,1 @@
+-keep class ru.dnsflow.app.data.** { *; }

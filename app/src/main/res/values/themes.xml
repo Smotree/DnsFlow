@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.DnsFlow" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFFFFFFF</item>
+        <item name="android:statusBarColor">#FFFC8507</item>
+    </style>
+</resources>

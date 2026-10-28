@@ -1,0 +1,9 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- QR-like finder squares -->
+    <path android:fillColor="#FFFFFF" android:pathData="M30,30h20v20h-20z M34,34v12h12v-12z" android:fillType="evenOdd"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M58,30h20v20h-20z M62,34v12h12v-12z" android:fillType="evenOdd"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M30,58h20v20h-20z M34,62v12h12v-12z" android:fillType="evenOdd"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M58,58h6v6h-6z M68,58h10v6h-10z M58,68h10v10h-10z M72,70h6v8h-6z"/>
+</vector>
