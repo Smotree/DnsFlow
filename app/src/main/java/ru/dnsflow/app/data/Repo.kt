@@ -1,5 +1,6 @@
 package ru.dnsflow.app.data
 
+import ru.dnsflow.app.data.Merge.stamp
 import androidx.room.withTransaction
 import ru.dnsflow.app.App
 import ru.dnsflow.app.sync.Sync
@@ -36,32 +37,33 @@ object Repo {
             format = format,
             scannedAt = now(),
             updatedAt = now(),
-        )
+        ).let { p -> Merge.Group.entries.fold(p) { q, g -> q.stamp(g, p.updatedAt) } }
         val place = if (existing != null) fresh.also { dao.updatePlace(it) } else fresh.copy(id = dao.insertPlace(fresh))
         Sync.publish(sessionId, listOf(place))
         return AddResult.Added(place)
     }
 
-    private suspend fun change(placeId: Long, block: (Place) -> Place): Place? {
+    /** A local edit of one group of fields ([Merge.Group]); only that group's time moves. */
+    private suspend fun change(placeId: Long, group: Merge.Group, block: (Place) -> Place): Place? {
         val p = dao.place(placeId) ?: return null
-        val updated = block(p).copy(updatedAt = now())
+        val updated = block(p).stamp(group, now())
         dao.updatePlace(updated)
         Sync.publish(p.sessionId, listOf(updated))
         return updated
     }
 
     suspend fun attachEan(placeId: Long, ean: String?, format: String?): Place? {
-        val updated = change(placeId) { it.copy(ean = ean, eanFormat = format) }
+        val updated = change(placeId, Merge.Group.EAN) { it.copy(ean = ean, eanFormat = format) }
         if (ean != null) app.lookup.request(ean)
         return updated
     }
 
     suspend fun setProblem(placeId: Long, problem: Boolean, note: String? = null) {
-        change(placeId) { it.copy(problem = problem, problemNote = note ?: it.problemNote, problemResolved = false) }
+        change(placeId, Merge.Group.PROBLEM) { it.copy(problem = problem, problemNote = note ?: it.problemNote, problemResolved = false) }
     }
 
     suspend fun setResolved(placeId: Long, resolved: Boolean) {
-        change(placeId) { it.copy(problemResolved = resolved) }
+        change(placeId, Merge.Group.PROBLEM) { it.copy(problemResolved = resolved) }
     }
 
     /** "Shown in 1C" only ever goes from false to true, so it merges by OR and keeps updatedAt. */
@@ -75,12 +77,12 @@ object Repo {
 
     /** One more separate piece under the same cargo-place label (an item sent apart from the box). */
     suspend fun addPiece(placeId: Long) {
-        change(placeId) { it.copy(pieces = it.pieces + 1) }
+        change(placeId, Merge.Group.PIECES) { it.copy(pieces = it.pieces + 1) }
     }
 
     /** One piece less; drops the last separate EAN if there are more EANs than separate pieces. */
     suspend fun removePiece(placeId: Long) {
-        change(placeId) {
+        change(placeId, Merge.Group.PIECES) {
             val pieces = (it.pieces - 1).coerceAtLeast(1)
             val eans = it.extraEans.lines().filter { e -> e.isNotBlank() }
             it.copy(pieces = pieces, extraEans = eans.take(pieces - 1).joinToString("\n"))
@@ -89,7 +91,7 @@ object Repo {
 
     /** EAN of a separate piece. */
     suspend fun addExtraEan(placeId: Long, ean: String) {
-        change(placeId) { p ->
+        change(placeId, Merge.Group.PIECES) { p ->
             p.copy(extraEans = (p.extraEans.lines().filter { it.isNotBlank() } + ean).joinToString("\n"))
         }
         app.lookup.request(ean)
@@ -108,7 +110,7 @@ object Repo {
     }
 
     suspend fun deletePlace(placeId: Long) {
-        val p = change(placeId) { it.copy(deleted = true) } ?: return
+        val p = change(placeId, Merge.Group.DELETED) { it.copy(deleted = true) } ?: return
         renumber(p.sessionId)
     }
 
@@ -128,7 +130,7 @@ object Repo {
         val places = dao.placesOnce(sessionId)
         val updated = places.mapIndexed { i, p ->
             val part = if (parts <= 1) 0 else i * parts / places.size + 1
-            p.copy(part = part, updatedAt = now())
+            p.copy(part = part).stamp(Merge.Group.PART, now())
         }
         app.db.withTransaction { updated.forEach { dao.updatePlace(it) } }
         dao.session(sessionId)?.let { dao.updateSession(it.copy(splitParts = if (parts <= 1) 0 else parts)) }

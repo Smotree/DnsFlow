@@ -7,6 +7,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
+import com.google.android.gms.nearby.connection.ConnectionOptions
+import com.google.android.gms.nearby.connection.ConnectionType
 import com.google.android.gms.nearby.connection.ConnectionInfo
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback
 import com.google.android.gms.nearby.connection.ConnectionResolution
@@ -73,6 +75,12 @@ object Sync {
     private val client: ConnectionsClient by lazy { Nearby.getConnectionsClient(app) }
     private val names = mutableMapOf<String, String>()
     private val strategy = Strategy.P2P_STAR
+
+    /**
+     * Never switch the phone's Wi-Fi or Bluetooth on or off to speed the link up: the acceptance
+     * data is small, and phones turned Wi-Fi on by themselves during joint work.
+     */
+    private const val QUIET = ConnectionType.NON_DISRUPTIVE
     private var watchdog: Job? = null
 
     val permissions: Array<String>
@@ -145,7 +153,7 @@ object Sync {
         }
         client.startAdvertising(
             endpointName(session.uid), SERVICE_ID, lifecycle,
-            AdvertisingOptions.Builder().setStrategy(strategy).build(),
+            AdvertisingOptions.Builder().setStrategy(strategy).setConnectionType(QUIET).build(),
         ).addOnFailureListener { fail("Не удалось включить приём подключений", it) }
     }
 
@@ -210,7 +218,10 @@ object Sync {
         client.startDiscovery(SERVICE_ID, object : EndpointDiscoveryCallback() {
             override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
                 if (!info.endpointName.startsWith(tag(s.uid) + "|")) return
-                client.requestConnection(endpointName(s.uid), endpointId, lifecycle)
+                client.requestConnection(
+                    endpointName(s.uid), endpointId, lifecycle,
+                    ConnectionOptions.Builder().setConnectionType(QUIET).build(),
+                )
                     .addOnFailureListener { Log.w(TAG, "request failed", it) }
             }
 

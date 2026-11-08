@@ -1,5 +1,8 @@
 package ru.dnsflow.app.ui
 
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import ru.dnsflow.app.data.Search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -300,12 +303,27 @@ fun ReceiveScreen(
             }
         }
 
-        Text(
-            if (places.isEmpty()) "Пока пусто — наведите камеру на этикетку" else "Отсканировано: ${places.size}  (нажмите на место — действия)",
-            fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(start = 12.dp, top = 8.dp),
-        )
+        var searching by rememberSaveable { mutableStateOf(false) }
+        var query by rememberSaveable { mutableStateOf("") }
+        val shown = remember(places, productMap, query) {
+            places.asReversed().filter { Search.matches(it, productMap[it.ean], query) }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (places.isEmpty()) "Пока пусто — наведите камеру на этикетку"
+                else if (query.isNotBlank()) (if (shown.isEmpty()) "Ничего не найдено" else "Найдено: ${shown.size} из ${places.size}")
+                else "Отсканировано: ${places.size}  (нажмите на место — действия)",
+                fontSize = 13.sp, color = Color.Gray, modifier = Modifier.weight(1f).padding(start = 12.dp, top = 8.dp),
+            )
+            if (places.isNotEmpty()) {
+                IconButton(onClick = { searching = !searching; if (!searching) query = "" }) {
+                    Icon(if (searching) Icons.Default.Close else Icons.Default.Search, "Поиск", tint = Color.Gray)
+                }
+            }
+        }
+        if (searching) PlaceSearchField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
         LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
-            items(places.asReversed(), key = { it.id }, contentType = { "place" }) { p ->
+            items(shown, key = { it.id }, contentType = { "place" }) { p ->
                 PlaceCard(p, productMap[p.ean], highlighted = p.id == awaitingEanFor) { selected = p }
             }
         }

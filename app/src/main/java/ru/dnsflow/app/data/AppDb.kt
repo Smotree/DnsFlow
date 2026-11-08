@@ -86,7 +86,7 @@ interface AppDao {
     suspend fun markFailedPending()
 }
 
-@Database(entities = [Session::class, Place::class, Product::class], version = 7, exportSchema = false)
+@Database(entities = [Session::class, Place::class, Product::class], version = 8, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
 
@@ -94,7 +94,7 @@ abstract class AppDb : RoomDatabase() {
         const val NAME = "dnsflow.db"
 
         fun open(context: Context): AppDb =
-            Room.databaseBuilder(context, AppDb::class.java, NAME).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
+            Room.databaseBuilder(context, AppDb::class.java, NAME).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build()
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -138,6 +138,15 @@ abstract class AppDb : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE places ADD COLUMN pieces INTEGER NOT NULL DEFAULT 1")
                 db.execSQL("ALTER TABLE places ADD COLUMN extraEans TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                for (c in listOf("eanAt", "problemAt", "partAt", "piecesAt", "deletedAt")) {
+                    db.execSQL("ALTER TABLE places ADD COLUMN $c INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("UPDATE places SET $c = updatedAt")
+                }
             }
         }
     }

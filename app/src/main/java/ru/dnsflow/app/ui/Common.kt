@@ -1,5 +1,7 @@
 package ru.dnsflow.app.ui
 
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -163,4 +165,29 @@ fun Centered(content: @Composable () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) { content() }
+}
+
+/** Search box above a place list: number of the cargo place, product code, EAN or name. */
+@androidx.compose.runtime.Composable
+fun PlaceSearchField(
+    query: String,
+    onQuery: (String) -> Unit,
+    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
+    dark: Boolean = false,
+) {
+    val color = if (dark) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color.Unspecified
+    androidx.compose.material3.OutlinedTextField(
+        value = query,
+        onValueChange = onQuery,
+        modifier = modifier,
+        singleLine = true,
+        placeholder = { androidx.compose.material3.Text("№ ГМ, код товара, EAN или название", fontSize = 14.sp, color = androidx.compose.ui.graphics.Color.Gray) },
+        leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.Search, null, tint = androidx.compose.ui.graphics.Color.Gray) },
+        trailingIcon = {
+            if (query.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { onQuery("") }) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Default.Close, "Очистить", tint = androidx.compose.ui.graphics.Color.Gray)
+            }
+        },
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = color),
+    )
 }

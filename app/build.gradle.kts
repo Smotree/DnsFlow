@@ -15,8 +15,8 @@ android {
         applicationId = "ru.dnsflow.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "2.1"
+        versionCode = 13
+        versionName = "2.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Phones only: x86 builds of the native OCR/ML libraries doubled the APK size.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }

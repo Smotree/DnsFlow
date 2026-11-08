@@ -1,5 +1,7 @@
 package ru.dnsflow.app
 
+import ru.dnsflow.app.data.Merge
+import ru.dnsflow.app.data.Merge.stamp
 import android.util.Log
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -50,7 +52,7 @@ class SyncSimulationTest {
 
         fun edit(raw: String, block: (Place) -> Place) = runBlocking {
             val p = dao.findPlace(sid, raw)!!
-            dao.updatePlace(block(p).copy(updatedAt = tick()))
+            dao.updatePlace(tick().let { t -> Merge.Group.entries.fold(block(p)) { q, g -> q.stamp(g, t) } })
         }
 
         fun verify(raw: String) = runBlocking {

@@ -60,6 +60,16 @@ data class Place(
     @ColumnInfo(defaultValue = "1") val pieces: Int = 1,
     /** EANs scanned on the separate pieces, one per line (repeats = several of the same product). */
     @ColumnInfo(defaultValue = "''") val extraEans: String = "",
+    /**
+     * When each group of fields was last edited (0 = not known, use [updatedAt]). Phones merge
+     * every group on its own, so an edit of one group never brings back a stale copy of another:
+     * splitting the 1C check or fixing an EAN on one phone must not wipe pieces added on another.
+     */
+    @ColumnInfo(defaultValue = "0") val eanAt: Long = 0,
+    @ColumnInfo(defaultValue = "0") val problemAt: Long = 0,
+    @ColumnInfo(defaultValue = "0") val partAt: Long = 0,
+    @ColumnInfo(defaultValue = "0") val piecesAt: Long = 0,
+    @ColumnInfo(defaultValue = "0") val deletedAt: Long = 0,
     /** Unused: reading the label text was tried and removed (not reliable on all labels); kept so the schema stays. */
     @ColumnInfo(defaultValue = "''") val sender: String = "",
     @ColumnInfo(defaultValue = "''") val recipient: String = "",

@@ -25,6 +25,8 @@ object Protocol {
         .put("problem", p.problem).put("problemNote", p.problemNote).put("problemResolved", p.problemResolved)
         .put("verified", p.verified).put("updatedAt", p.updatedAt).put("deleted", p.deleted).put("part", p.part)
         .put("pieces", p.pieces).put("extraEans", p.extraEans)
+        .put("eanAt", p.eanAt).put("problemAt", p.problemAt).put("partAt", p.partAt)
+        .put("piecesAt", p.piecesAt).put("deletedAt", p.deletedAt)
 
     fun placeFromJson(o: JSONObject) = Place(
         sessionId = 0, position = 0,
@@ -35,6 +37,9 @@ object Protocol {
         problemResolved = o.optBoolean("problemResolved"), verified = o.optBoolean("verified"),
         updatedAt = o.optLong("updatedAt"), deleted = o.optBoolean("deleted"), part = o.optInt("part"),
         pieces = o.optInt("pieces", 1).coerceAtLeast(1), extraEans = o.optString("extraEans"),
+        // Absent from phones before 2.2: 0 falls back to updatedAt.
+        eanAt = o.optLong("eanAt"), problemAt = o.optLong("problemAt"), partAt = o.optLong("partAt"),
+        piecesAt = o.optLong("piecesAt"), deletedAt = o.optLong("deletedAt"),
     )
 
     fun JSONObject.str(key: String): String? = if (isNull(key)) null else optString(key).takeIf { it.isNotEmpty() }

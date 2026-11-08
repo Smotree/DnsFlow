@@ -1,5 +1,7 @@
 package ru.dnsflow.app.ui
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import ru.dnsflow.app.data.Search
 import androidx.compose.foundation.background
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
@@ -187,12 +189,16 @@ fun SessionScreen(
                 ActionTile("Excel", Modifier.weight(1f)) { scope.launch { Export.shareSession(context, sessionId) } }
             }
         }
+        var query by rememberSaveable { mutableStateOf("") }
+        val shown = remember(places, productMap, query) { places.filter { Search.matches(it, productMap[it.ean], query) } }
+        PlaceSearchField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 8.dp))
         Text(
-            "Места (нажмите — QR и EAN, удерживайте — действия)",
+            if (query.isBlank()) "Места (нажмите — QR и EAN, удерживайте — действия)"
+            else if (shown.isEmpty()) "Ничего не найдено" else "Найдено: ${shown.size}",
             fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start = 12.dp),
         )
         LazyColumn(Modifier.weight(1f).navigationBarsPadding(), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
-            items(places, key = { it.id }, contentType = { "place" }) { p ->
+            items(shown, key = { it.id }, contentType = { "place" }) { p ->
                 PlaceCard(p, productMap[p.ean], onLongClick = { selected = p }) { openReview(p.id, 0) }
             }
         }
